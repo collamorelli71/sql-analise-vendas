@@ -4,7 +4,7 @@
 
 # 📊 Sales Analysis — SQL Portfolio Project
 
-[![Live Demo](https://img.shields.io/badge/▶_Interactive_Demo-64B5F6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://SEU-USERNAME.github.io/sql-analise-vendas)
+[![Live Demo](https://img.shields.io/badge/▶_Interactive_Demo-64B5F6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://collamorelli71.github.io/sql-analise-vendas)
 [![Docker](https://img.shields.io/badge/Docker_Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#-run-locally-with-docker)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](#)
 
@@ -25,7 +25,7 @@
 This project demonstrates practical SQL skills through a **fictional e-commerce sales dataset**. Each query solves a real business question — from identifying top-performing products to detecting revenue trends over time.
 
 **What makes it different:** You can explore the queries in two ways:
-- **🌐 Interactive Demo** → [Click here](https://SEU-USERNAME.github.io/sql-analise-vendas) to run queries in the browser with mock results
+- **🌐 Interactive Demo** → [Click here](https://collamorelli71.github.io/sql-analise-vendas) to run queries in the browser with mock results
 - **🐳 Docker** → Clone, `docker-compose up`, and execute real queries on a live PostgreSQL database
 
 ## 📋 Business Questions Answered
@@ -75,7 +75,7 @@ This project demonstrates practical SQL skills through a **fictional e-commerce 
 
 ```bash
 # Clone the repo
-git clone https://github.com/SEU-USERNAME/sql-analise-vendas.git
+git clone https://github.com/collamorelli71/sql-analise-vendas.git
 cd sql-analise-vendas
 
 # Start PostgreSQL with seed data
@@ -115,11 +115,11 @@ sql-analise-vendas/
 Este projeto demonstra habilidades práticas de SQL através de um **dataset fictício de vendas e-commerce**. Cada query resolve uma pergunta real de negócio — desde identificar produtos mais vendidos até detectar tendências de receita ao longo do tempo.
 
 **O diferencial:** Você pode explorar as queries de duas formas:
-- **🌐 Demo Interativa** → [Clique aqui](https://SEU-USERNAME.github.io/sql-analise-vendas) para executar queries no browser com resultados mockados
+- **🌐 Demo Interativa** → [Clique aqui](https://collamorelli71.github.io/sql-analise-vendas) para executar queries no browser com resultados mockados
 - **🐳 Docker** → Clone, `docker-compose up`, e execute queries reais num PostgreSQL
 
 ---
 
 <div align="center">
-<sub>Made with ☕ and SQL — <a href="https://github.com/SEU-USERNAME">Back to profile</a></sub>
+<sub>Made with ☕ and SQL — <a href="https://github.com/collamorelli71">Back to profile</a></sub>
 </div>
