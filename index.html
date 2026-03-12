@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Sales Analysis — Interactive Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pink-50:#FFF0F5;--pink-100:#FCE4EC;--pink-200:#F8BBD0;--pink-300:#F48FB1;
+      --pink-400:#EC407A;--pink-500:#E91E63;--pink-600:#C2185B;
+      --blue-50:#F0F7FF;--blue-100:#E3F2FD;--blue-200:#BBDEFB;--blue-300:#64B5F6;
+      --blue-400:#42A5F5;--blue-500:#1976D2;--blue-600:#1565C0;
+      --green-50:#E8F5E9;--green-400:#66BB6A;--green-600:#2E7D32;
+      --amber-400:#FFCA28;--amber-600:#F9A825;
+      --white:#FFFFFF;--gray-50:#FAFBFC;--gray-100:#F4F5F7;--gray-200:#E8EAED;
+      --gray-300:#D1D5DB;--gray-400:#9AA0A6;--gray-500:#6B7280;
+      --gray-600:#5F6368;--gray-700:#374151;--gray-800:#2D3436;--gray-900:#1A1C1E;
+      --code-bg:#1E1E2E;--code-text:#CDD6F4;
+      --kw:#CBA6F7;--fn:#89B4FA;--str:#A6E3A1;--num:#FAB387;--cm:#6C7086;--op:#89DCEB;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+    /* === TOP BAR === */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:var(--white);border-bottom:1px solid var(--gray-200);flex-shrink:0;}
+    .topbar-left{display:flex;align-items:center;gap:14px;}
+    .back-link{display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--gray-500);font-size:13px;font-family:'Outfit',sans-serif;font-weight:500;transition:0.2s;}
+    .back-link:hover{color:var(--pink-400);}
+    .topbar-title{font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;color:var(--gray-800);}
+    .topbar-title .accent{color:var(--blue-400);}
+    .topbar-right{display:flex;align-items:center;gap:12px;}
+    .lang-toggle{display:flex;gap:2px;background:var(--gray-100);border-radius:16px;padding:2px;}
+    .lang-btn{border:none;background:transparent;padding:5px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;color:var(--gray-400);cursor:pointer;border-radius:14px;transition:0.2s;}
+    .lang-btn.active{background:var(--blue-400);color:white;}
+    .github-link{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid var(--gray-200);text-decoration:none;font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;color:var(--gray-600);transition:0.2s;}
+    .github-link:hover{border-color:var(--pink-200);color:var(--pink-500);}
+
+    /* === MAIN LAYOUT === */
+    .main{display:flex;flex:1;overflow:hidden;}
+
+    /* === SIDEBAR === */
+    .sidebar{width:280px;background:var(--white);border-right:1px solid var(--gray-200);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+    .sidebar-header{padding:20px 20px 12px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--gray-400);}
+    .query-list{list-style:none;padding:0 8px 20px;}
+    .query-item{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:10px;cursor:pointer;transition:0.2s;margin-bottom:2px;}
+    .query-item:hover{background:var(--gray-50);}
+    .query-item.active{background:var(--blue-50);border:1px solid var(--blue-200);}
+    .query-num{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;flex-shrink:0;background:var(--gray-100);color:var(--gray-500);}
+    .query-item.active .query-num{background:var(--blue-400);color:white;}
+    .query-info{flex:1;min-width:0;}
+    .query-name{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:3px;}
+    .query-tags{display:flex;gap:4px;flex-wrap:wrap;}
+    .qtag{padding:2px 7px;border-radius:8px;font-size:10px;font-weight:500;font-family:'Outfit',sans-serif;background:var(--gray-100);color:var(--gray-500);}
+    .query-item.active .qtag{background:var(--blue-100);color:var(--blue-600);}
+
+    /* === SCHEMA INFO === */
+    .schema-section{border-top:1px solid var(--gray-200);padding:16px 20px;}
+    .schema-title{font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--gray-400);margin-bottom:10px;}
+    .schema-tables{display:flex;flex-direction:column;gap:6px;}
+    .schema-table{display:flex;align-items:center;gap:8px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--gray-600);}
+    .schema-table .icon{font-size:14px;}
+    .schema-table .rows{margin-left:auto;font-size:10px;color:var(--gray-400);background:var(--gray-100);padding:2px 6px;border-radius:6px;}
+
+    /* === CONTENT === */
+    .content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+    /* Question bar */
+    .question-bar{padding:20px 28px 16px;border-bottom:1px solid var(--gray-100);background:var(--white);flex-shrink:0;}
+    .question-label{font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--pink-400);margin-bottom:6px;}
+    .question-text{font-family:'Outfit',sans-serif;font-size:1.15rem;font-weight:600;color:var(--gray-900);}
+
+    /* Code area */
+    .code-section{flex-shrink:0;position:relative;}
+    .code-header{display:flex;align-items:center;justify-content:space-between;padding:10px 28px;background:var(--code-bg);border-bottom:1px solid #313244;}
+    .code-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cm);}
+    .run-btn{display:flex;align-items:center;gap:6px;padding:7px 18px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--pink-400),var(--pink-500));color:white;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:0.3s;box-shadow:0 2px 8px rgba(233,30,99,0.3);}
+    .run-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(233,30,99,0.4);}
+    .run-btn:active{transform:scale(0.97);}
+    .run-btn.running{background:var(--amber-400);color:var(--gray-900);}
+    .run-btn.done{background:var(--green-400);color:white;}
+    .code-block{padding:20px 28px;background:var(--code-bg);font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:var(--code-text);overflow-x:auto;white-space:pre;max-height:220px;overflow-y:auto;}
+
+    /* Results area */
+    .results-section{flex:1;overflow:auto;padding:20px 28px;}
+    .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .results-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--gray-800);}
+    .results-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-400);}
+    .results-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:var(--gray-400);text-align:center;}
+    .results-placeholder .icon{font-size:2.5rem;margin-bottom:12px;opacity:0.5;}
+    .results-placeholder p{font-size:14px;}
+
+    /* Table */
+    .results-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .results-table th{position:sticky;top:0;background:var(--gray-100);padding:10px 14px;text-align:left;font-family:'Outfit',sans-serif;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gray-500);border-bottom:2px solid var(--gray-200);}
+    .results-table td{padding:10px 14px;border-bottom:1px solid var(--gray-100);color:var(--gray-700);font-family:'JetBrains Mono',monospace;font-size:12px;}
+    .results-table tr:hover td{background:var(--blue-50);}
+    .results-table .num{text-align:right;color:var(--blue-500);font-weight:500;}
+    .results-table .highlight{background:var(--pink-50);font-weight:500;color:var(--pink-600);}
+
+    /* Animation */
+    .typing-cursor::after{content:'█';animation:blink 0.8s infinite;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .row-animate{animation:slideUp 0.3s ease both;}
+
+    /* Responsive */
+    @media(max-width:768px){
+      .sidebar{display:none;}
+      .topbar{padding:0 16px;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="https://github.com/SEU-USERNAME" class="back-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4L5 8l6 4"/></svg>
+        Profile
+      </a>
+      <div class="topbar-title">📊 Sales Analysis — <span class="accent">SQL Explorer</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('en',this)">EN</button>
+        <button class="lang-btn" onclick="setLang('pt',this)">PT</button>
+      </div>
+      <a href="https://github.com/SEU-USERNAME/sql-analise-vendas" class="github-link" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Source
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header" data-en="Queries" data-pt="Consultas">Queries</div>
+      <ul class="query-list" id="queryList"></ul>
+
+      <div class="schema-section">
+        <div class="schema-title" data-en="Database Schema" data-pt="Esquema do Banco">Database Schema</div>
+        <div class="schema-tables">
+          <div class="schema-table"><span class="icon">📋</span> orders <span class="rows">200</span></div>
+          <div class="schema-table"><span class="icon">📦</span> order_items <span class="rows">~500</span></div>
+          <div class="schema-table"><span class="icon">👤</span> customers <span class="rows">50</span></div>
+          <div class="schema-table"><span class="icon">🏷️</span> products <span class="rows">20</span></div>
+          <div class="schema-table"><span class="icon">👔</span> sellers <span class="rows">8</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="question-bar">
+        <div class="question-label" data-en="Business Question" data-pt="Pergunta de Negócio">Business Question</div>
+        <div class="question-text" id="questionText">Select a query to begin</div>
+      </div>
+
+      <div class="code-section">
+        <div class="code-header">
+          <span class="code-label" id="codeLabel">-- SELECT a query from the sidebar</span>
+          <button class="run-btn" id="runBtn" onclick="runQuery()" disabled>
+            <svg width="14" height="14" fill="currentColor"><polygon points="3,1 13,8 3,15"/></svg>
+            <span data-en="Run Query" data-pt="Executar">Run Query</span>
+          </button>
+        </div>
+        <div class="code-block" id="codeBlock">-- Click a query on the left to load the SQL code here
+-- Then press "Run Query" to see the mock results
+
+-- 🐳 Want real results? Clone the repo and run:
+--    docker-compose up -d
+--    docker exec -it sales-db psql -U analyst -d sales</div>
+      </div>
+
+      <div class="results-section" id="resultsSection">
+        <div class="results-placeholder" id="placeholder">
+          <div class="icon">🔍</div>
+          <p data-en="Select a query and click Run to see results" data-pt="Selecione uma query e clique Executar para ver os resultados">Select a query and click Run to see results</p>
+        </div>
+        <div id="resultsContent" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// === QUERY DATA ===
+const queries = [
+  {
+    id: 1,
+    name: { en: "Top 10 Products by Revenue", pt: "Top 10 Produtos por Receita" },
+    question: { en: "Which products generate the most revenue?", pt: "Quais produtos geram mais receita?" },
+    tags: ["GROUP BY", "SUM", "JOIN"],
+    file: "queries/01-top-products.sql",
+    sql: `SELECT
+    p.name AS product_name,
+    p.category,
+    SUM(oi.quantity) AS total_units_sold,
+    SUM(oi.quantity * oi.unit_price) AS total_revenue,
+    ROUND(AVG(oi.unit_price), 2) AS avg_selling_price
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+GROUP BY p.name, p.category
+ORDER BY total_revenue DESC
+LIMIT 10;`,
+    columns: ["product_name", "category", "total_units_sold", "total_revenue", "avg_selling_price"],
+    numCols: [2,3,4],
+    highlightCol: 3,
+    data: [
+      ["Notebook Pro 15", "Eletrônicos", "87", "R$ 400.191,30", "R$ 4.599,90"],
+      ["Monitor 27\" 4K", "Eletrônicos", "62", "R$ 179.793,80", "R$ 2.899,90"],
+      ["Mesa Standing Desk", "Mobiliário", "48", "R$ 119.995,20", "R$ 2.499,90"],
+      ["Tablet 10\" 128GB", "Eletrônicos", "55", "R$ 109.994,50", "R$ 1.999,90"],
+      ["Cadeira Ergonômica", "Mobiliário", "51", "R$ 96.894,90", "R$ 1.899,90"],
+      ["SSD 1TB NVMe", "Armazenamento", "94", "R$ 51.690,60", "R$ 549,90"],
+      ["Headset Gamer Pro", "Áudio", "78", "R$ 35.872,20", "R$ 459,90"],
+      ["HD Externo 2TB", "Armazenamento", "71", "R$ 28.392,90", "R$ 399,90"],
+      ["Teclado Mecânico RGB", "Periféricos", "83", "R$ 29.041,70", "R$ 349,90"],
+      ["Fone TWS Bluetooth", "Áudio", "65", "R$ 19.493,50", "R$ 299,90"]
+    ]
+  },
+  {
+    id: 2,
+    name: { en: "Monthly Revenue Trend", pt: "Tendência de Receita Mensal" },
+    question: { en: "How is our revenue trending month over month?", pt: "Como está a tendência de receita mês a mês?" },
+    tags: ["CTE", "LAG", "DATE_TRUNC"],
+    sql: `WITH monthly AS (
+    SELECT
+        DATE_TRUNC('month', order_date) AS month,
+        COUNT(DISTINCT id) AS total_orders,
+        SUM(total_amount) AS revenue
+    FROM orders
+    WHERE order_date >= CURRENT_DATE - INTERVAL '12 months'
+    GROUP BY DATE_TRUNC('month', order_date)
+)
+SELECT
+    TO_CHAR(month, 'YYYY-MM') AS month,
+    total_orders,
+    revenue,
+    LAG(revenue) OVER (ORDER BY month) AS prev_month,
+    ROUND((revenue - LAG(revenue) OVER (ORDER BY month))
+      / NULLIF(LAG(revenue) OVER (ORDER BY month), 0) * 100, 1
+    ) AS growth_pct
+FROM monthly ORDER BY month;`,
+    columns: ["month", "total_orders", "revenue", "prev_month", "growth_pct"],
+    numCols: [1,2,3,4],
+    highlightCol: 4,
+    data: [
+      ["2025-04", "14", "R$ 68.432,10", "—", "—"],
+      ["2025-05", "18", "R$ 82.190,50", "R$ 68.432,10", "+20.1%"],
+      ["2025-06", "16", "R$ 71.845,20", "R$ 82.190,50", "-12.6%"],
+      ["2025-07", "21", "R$ 95.612,80", "R$ 71.845,20", "+33.1%"],
+      ["2025-08", "19", "R$ 88.301,40", "R$ 95.612,80", "-7.6%"],
+      ["2025-09", "22", "R$ 102.455,90", "R$ 88.301,40", "+16.0%"],
+      ["2025-10", "17", "R$ 76.890,30", "R$ 102.455,90", "-24.9%"],
+      ["2025-11", "24", "R$ 112.678,50", "R$ 76.890,30", "+46.5%"],
+      ["2025-12", "28", "R$ 134.521,70", "R$ 112.678,50", "+19.4%"],
+      ["2026-01", "20", "R$ 91.234,60", "R$ 134.521,70", "-32.2%"],
+      ["2026-02", "23", "R$ 108.765,40", "R$ 91.234,60", "+19.2%"],
+      ["2026-03", "11", "R$ 52.340,80", "R$ 108.765,40", "-51.9%"]
+    ]
+  },
+  {
+    id: 3,
+    name: { en: "Revenue Share by Category", pt: "Participação por Categoria" },
+    question: { en: "What % of revenue does each category represent?", pt: "Qual % da receita cada categoria representa?" },
+    tags: ["Window Function", "SUM() OVER()"],
+    sql: `SELECT
+    p.category,
+    SUM(oi.quantity * oi.unit_price) AS category_revenue,
+    SUM(SUM(oi.quantity * oi.unit_price)) OVER () AS total_revenue,
+    ROUND(
+        SUM(oi.quantity * oi.unit_price) * 100.0
+        / SUM(SUM(oi.quantity * oi.unit_price)) OVER (), 1
+    ) AS revenue_share_pct
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+GROUP BY p.category
+ORDER BY category_revenue DESC;`,
+    columns: ["category", "category_revenue", "total_revenue", "revenue_share_pct"],
+    numCols: [1,2,3],
+    highlightCol: 3,
+    data: [
+      ["Eletrônicos", "R$ 689.979,60", "R$ 1.085.268,90", "63.6%"],
+      ["Mobiliário", "R$ 216.890,10", "R$ 1.085.268,90", "20.0%"],
+      ["Armazenamento", "R$ 80.083,50", "R$ 1.085.268,90", "7.4%"],
+      ["Áudio", "R$ 55.365,60", "R$ 1.085.268,90", "5.1%"],
+      ["Periféricos", "R$ 29.041,70", "R$ 1.085.268,90", "2.7%"],
+      ["Acessórios", "R$ 13.908,40", "R$ 1.085.268,90", "1.3%"]
+    ]
+  },
+  {
+    id: 4,
+    name: { en: "Top Sellers Consistency", pt: "Consistência dos Vendedores" },
+    question: { en: "Which sellers consistently outperform their average?", pt: "Quais vendedores superam consistentemente sua média?" },
+    tags: ["CTE", "AVG() OVER()", "FILTER"],
+    sql: `WITH seller_monthly AS (
+    SELECT s.name, s.region,
+        DATE_TRUNC('month', o.order_date) AS month,
+        SUM(o.total_amount) AS monthly_revenue
+    FROM orders o
+    JOIN sellers s ON s.id = o.seller_id
+    GROUP BY s.name, s.region, DATE_TRUNC('month', o.order_date)
+),
+seller_avg AS (
+    SELECT *, AVG(monthly_revenue) OVER (PARTITION BY name) AS avg_revenue,
+        COUNT(*) OVER (PARTITION BY name) AS total_months
+    FROM seller_monthly
+)
+SELECT name, region, ROUND(avg_revenue, 2) AS avg_monthly,
+    COUNT(*) FILTER (WHERE monthly_revenue > avg_revenue) AS months_above,
+    total_months,
+    ROUND(COUNT(*) FILTER (WHERE monthly_revenue > avg_revenue) * 100.0
+        / total_months, 1) AS consistency_pct
+FROM seller_avg
+GROUP BY name, region, avg_revenue, total_months
+ORDER BY consistency_pct DESC;`,
+    columns: ["name", "region", "avg_monthly", "months_above", "total_months", "consistency_pct"],
+    numCols: [2,3,4,5],
+    highlightCol: 5,
+    data: [
+      ["Gabriela Dias", "Sudeste", "R$ 18.432,50", "14", "22", "63.6%"],
+      ["Ana Costa", "Sudeste", "R$ 15.890,20", "13", "21", "61.9%"],
+      ["Carla Souza", "Sul", "R$ 12.675,80", "12", "20", "60.0%"],
+      ["Bruno Lima", "Nordeste", "R$ 11.234,10", "10", "18", "55.6%"],
+      ["Daniel Rocha", "Sudeste", "R$ 9.876,40", "8", "15", "53.3%"],
+      ["Elena Santos", "Norte", "R$ 8.543,90", "8", "16", "50.0%"],
+      ["Felipe Alves", "Centro-Oeste", "R$ 7.321,60", "6", "13", "46.2%"],
+      ["Hugo Martins", "Nordeste", "R$ 6.789,30", "4", "10", "40.0%"]
+    ]
+  },
+  {
+    id: 5,
+    name: { en: "Running Total by Region", pt: "Acumulado por Região" },
+    question: { en: "How does cumulative revenue grow across regions?", pt: "Como a receita acumulada cresce por região?" },
+    tags: ["SUM() OVER(ORDER BY)", "PARTITION BY"],
+    sql: `SELECT
+    c.region,
+    DATE_TRUNC('month', o.order_date) AS month,
+    SUM(o.total_amount) AS monthly_revenue,
+    SUM(SUM(o.total_amount)) OVER (
+        PARTITION BY c.region
+        ORDER BY DATE_TRUNC('month', o.order_date)
+    ) AS cumulative_revenue
+FROM orders o
+JOIN customers c ON c.id = o.customer_id
+GROUP BY c.region, DATE_TRUNC('month', o.order_date)
+ORDER BY c.region, month;`,
+    columns: ["region", "month", "monthly_revenue", "cumulative_revenue"],
+    numCols: [2,3],
+    highlightCol: 3,
+    data: [
+      ["Centro-Oeste", "2025-07", "R$ 8.432,10", "R$ 8.432,10"],
+      ["Centro-Oeste", "2025-08", "R$ 12.190,50", "R$ 20.622,60"],
+      ["Centro-Oeste", "2025-09", "R$ 9.845,20", "R$ 30.467,80"],
+      ["Nordeste", "2025-07", "R$ 15.612,80", "R$ 15.612,80"],
+      ["Nordeste", "2025-08", "R$ 18.301,40", "R$ 33.914,20"],
+      ["Nordeste", "2025-09", "R$ 21.455,90", "R$ 55.370,10"],
+      ["Norte", "2025-07", "R$ 5.890,30", "R$ 5.890,30"],
+      ["Norte", "2025-08", "R$ 7.678,50", "R$ 13.568,80"],
+      ["Norte", "2025-09", "R$ 6.521,70", "R$ 20.090,50"],
+      ["Sudeste", "2025-07", "R$ 42.234,60", "R$ 42.234,60"],
+      ["Sudeste", "2025-08", "R$ 38.765,40", "R$ 81.000,00"],
+      ["Sudeste", "2025-09", "R$ 45.340,80", "R$ 126.340,80"],
+      ["Sul", "2025-07", "R$ 18.123,90", "R$ 18.123,90"],
+      ["Sul", "2025-08", "R$ 15.890,20", "R$ 34.014,10"],
+      ["Sul", "2025-09", "R$ 19.654,30", "R$ 53.668,40"]
+    ]
+  },
+  {
+    id: 6,
+    name: { en: "Customer Cohort Retention", pt: "Retenção por Coorte" },
+    question: { en: "How well do we retain customers by signup cohort?", pt: "Qual a retenção de clientes por coorte de cadastro?" },
+    tags: ["CTE", "COUNT DISTINCT", "Cohort"],
+    sql: `WITH cohorts AS (
+    SELECT c.id AS customer_id,
+        DATE_TRUNC('month', c.signup_date) AS cohort_month,
+        DATE_TRUNC('month', o.order_date) AS order_month
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.id
+),
+cohort_size AS (
+    SELECT cohort_month, COUNT(DISTINCT customer_id) AS total
+    FROM cohorts GROUP BY cohort_month
+),
+retention AS (
+    SELECT cohort_month, order_month,
+        COUNT(DISTINCT customer_id) AS active,
+        EXTRACT(MONTH FROM AGE(order_month, cohort_month))::INT AS months
+    FROM cohorts GROUP BY cohort_month, order_month
+)
+SELECT TO_CHAR(r.cohort_month,'YYYY-MM') AS cohort,
+    cs.total, r.months AS months_since,
+    r.active, ROUND(r.active*100.0/cs.total,1) AS retention_pct
+FROM retention r JOIN cohort_size cs ON cs.cohort_month = r.cohort_month
+WHERE r.months <= 6 ORDER BY r.cohort_month, r.months;`,
+    columns: ["cohort", "total_customers", "months_since", "active_customers", "retention_pct"],
+    numCols: [1,2,3,4],
+    highlightCol: 4,
+    data: [
+      ["2024-01", "2", "0", "2", "100.0%"],
+      ["2024-01", "2", "1", "2", "100.0%"],
+      ["2024-01", "2", "2", "1", "50.0%"],
+      ["2024-01", "2", "3", "1", "50.0%"],
+      ["2024-02", "3", "0", "3", "100.0%"],
+      ["2024-02", "3", "1", "2", "66.7%"],
+      ["2024-02", "3", "2", "2", "66.7%"],
+      ["2024-02", "3", "3", "1", "33.3%"],
+      ["2024-03", "4", "0", "4", "100.0%"],
+      ["2024-03", "4", "1", "3", "75.0%"],
+      ["2024-03", "4", "2", "2", "50.0%"],
+      ["2024-04", "3", "0", "3", "100.0%"],
+      ["2024-04", "3", "1", "2", "66.7%"],
+      ["2024-05", "3", "0", "3", "100.0%"],
+      ["2024-05", "3", "1", "2", "66.7%"]
+    ]
+  }
+];
+
+let currentLang = 'en';
+let currentQuery = null;
+
+// Build sidebar
+function buildSidebar() {
+  const list = document.getElementById('queryList');
+  list.innerHTML = '';
+  queries.forEach(q => {
+    const li = document.createElement('li');
+    li.className = 'query-item' + (currentQuery && currentQuery.id === q.id ? ' active' : '');
+    li.onclick = () => selectQuery(q);
+    li.innerHTML = `
+      <div class="query-num">${q.id}</div>
+      <div class="query-info">
+        <div class="query-name">${q.name[currentLang]}</div>
+        <div class="query-tags">${q.tags.map(t => `<span class="qtag">${t}</span>`).join('')}</div>
+      </div>`;
+    list.appendChild(li);
+  });
+}
+
+function selectQuery(q) {
+  currentQuery = q;
+  document.getElementById('questionText').textContent = q.question[currentLang];
+  document.getElementById('codeLabel').textContent = `queries/0${q.id}-*.sql`;
+  document.getElementById('codeBlock').innerHTML = highlightSQL(q.sql);
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').className = 'run-btn';
+  document.getElementById('runBtn').querySelector('span').textContent = currentLang === 'en' ? 'Run Query' : 'Executar';
+  document.getElementById('placeholder').style.display = 'flex';
+  document.getElementById('resultsContent').style.display = 'none';
+  buildSidebar();
+}
+
+function highlightSQL(sql) {
+  const keywords = ['SELECT','FROM','JOIN','LEFT','RIGHT','INNER','ON','WHERE','GROUP BY','ORDER BY','LIMIT','AS','AND','OR','NOT','IN','BETWEEN','LIKE','IS','NULL','CASE','WHEN','THEN','ELSE','END','DISTINCT','HAVING','UNION','ALL','INSERT','INTO','VALUES','UPDATE','SET','DELETE','CREATE','TABLE','ALTER','DROP','INDEX','WITH','OVER','PARTITION BY','ROWS','RANGE','PRECEDING','FOLLOWING','UNBOUNDED','CURRENT ROW','FILTER','DESC','ASC','INTERVAL','EXISTS','NULLIF'];
+  const functions = ['SUM','COUNT','AVG','MIN','MAX','ROUND','DATE_TRUNC','TO_CHAR','LAG','LEAD','ROW_NUMBER','RANK','DENSE_RANK','COALESCE','EXTRACT','AGE','MONTH'];
+  let escaped = sql.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  escaped = escaped.replace(/(--[^\n]*)/g, `<span style="color:var(--cm)">$1</span>`);
+  escaped = escaped.replace(/('(?:[^'\\]|\\.)*')/g, `<span style="color:var(--str)">$1</span>`);
+  escaped = escaped.replace(/\b(\d+(?:\.\d+)?)\b/g, `<span style="color:var(--num)">$1</span>`);
+  functions.forEach(fn => {
+    const re = new RegExp(`\\b(${fn})\\s*\\(`,'gi');
+    escaped = escaped.replace(re, `<span style="color:var(--fn)">$1</span>(`);
+  });
+  keywords.forEach(kw => {
+    const re = new RegExp(`\\b(${kw})\\b`,'gi');
+    escaped = escaped.replace(re, (m) => `<span style="color:var(--kw)">${m}</span>`);
+  });
+  return escaped;
+}
+
+async function runQuery() {
+  if (!currentQuery) return;
+  const btn = document.getElementById('runBtn');
+  btn.className = 'run-btn running';
+  btn.querySelector('span').textContent = currentLang === 'en' ? 'Running...' : 'Executando...';
+
+  await new Promise(r => setTimeout(r, 800));
+
+  btn.className = 'run-btn done';
+  btn.querySelector('span').textContent = currentLang === 'en' ? '✓ Done' : '✓ Concluído';
+
+  const q = currentQuery;
+  const elapsed = (Math.random() * 40 + 10).toFixed(0);
+  let html = `
+    <div class="results-header">
+      <div class="results-title">${currentLang === 'en' ? 'Results' : 'Resultados'} — ${q.name[currentLang]}</div>
+      <div class="results-meta">${q.data.length} rows · ${elapsed}ms</div>
+    </div>
+    <table class="results-table">
+      <thead><tr>${q.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>`;
+
+  q.data.forEach((row, i) => {
+    html += `<tr class="row-animate" style="animation-delay:${i*50}ms">`;
+    row.forEach((cell, ci) => {
+      const isNum = q.numCols.includes(ci);
+      const isHl = ci === q.highlightCol;
+      html += `<td class="${isNum ? 'num' : ''} ${isHl ? 'highlight' : ''}">${cell}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('resultsContent').style.display = 'block';
+  document.getElementById('resultsContent').innerHTML = html;
+
+  setTimeout(() => {
+    btn.className = 'run-btn';
+    btn.querySelector('span').textContent = currentLang === 'en' ? 'Run Query' : 'Executar';
+  }, 2000);
+}
+
+function setLang(lang, el) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('[data-en]').forEach(e => e.textContent = e.getAttribute(`data-${lang}`));
+  buildSidebar();
+  if (currentQuery) {
+    document.getElementById('questionText').textContent = currentQuery.question[lang];
+    document.getElementById('runBtn').querySelector('span').textContent = lang === 'en' ? 'Run Query' : 'Executar';
+  }
+}
+
+// Init
+buildSidebar();
+</script>
+</body>
+</html>
